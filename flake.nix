@@ -13,49 +13,78 @@
             inherit system;
           };
 
-          bcl-convert =
-            with pkgs;
-            stdenv.mkDerivation rec {
-            pname = "bcl-convert";
-            version = "4.2.7-2";
-            hash = "sha256-6lCNdj3CfTDRo09qONjaMepneX17SXHowQZ3vEhTlWU=";
-            arch = builtins.head (lib.strings.splitString "-" system);
+          # extend as required
+          default_version = "v4_2_7";
 
-            src = fetchurl {
-              url = "https://s3.amazonaws.com/webdata.illumina.com/downloads/software/bcl-convert/bcl-convert-${version}.el7.${arch}.rpm";
-              inherit hash;
+          available_versions = {
+            "v4_2_7" = {
+              release = "2";
+              hash = "sha256-6lCNdj3CfTDRo09qONjaMepneX17SXHowQZ3vEhTlWU=";
             };
 
-            buildInputs = [
-              stdenv.cc.cc.lib
-              lzma
-              udev
-              zlib
-            ];
+            "v4_2_4" = {
+              release = "2";
+              hash = "sha256-/p8DQ+/AV5TVCPAk1d3JOXZItw0PGkMMTgPVKW5hoVw=";
+            };
+          };
 
-            nativeBuildInputs = [
-              autoPatchelfHook
-            ];
+          v = underscored_version: (available_versions.${underscored_version} // { version = builtins.replaceStrings ["v" "_"] ["" "."] underscored_version; });
 
-            unpackPhase = ''
+          bcl-convert = p:
+            with pkgs;
+            with p;
+            stdenv.mkDerivation rec {
+              pname = "bcl-convert";
+              arch = builtins.head (lib.strings.splitString "-" system);
+
+              inherit version;
+              inherit release;
+              inherit hash;
+
+              src = fetchurl {
+                url = "https://s3.amazonaws.com/webdata.illumina.com/downloads/software/bcl-convert/bcl-convert-${version}-${release}.el7.${arch}.rpm";
+                inherit hash;
+              };
+
+              buildInputs = [
+                stdenv.cc.cc.lib
+                lzma
+                udev
+                zlib
+              ];
+
+              nativeBuildInputs = [
+                autoPatchelfHook
+              ];
+
+              unpackPhase = ''
               ${rpmextract}/bin/rpmextract $src
             '';
 
-            installPhase = ''
+              installPhase = ''
               runHook preInstall
               mkdir -p $out/bin
               cp usr/bin/bcl-convert $out/bin
               runHook postInstall
             '';
-          };
+            };
 
         in
           with pkgs;
           {
-            devShells.default = mkShell {
-              buildInputs = [ bcl-convert ];
-            };
+            devShells = {
+              default = mkShell {
+                buildInputs = [ (bcl-convert (v default_version)) ];
+              };
+            } // builtins.mapAttrs (name: _p:
+              mkShell {
+                buildInputs = [ (bcl-convert (v name)) ];
+              }
+            ) available_versions;
 
-            packages.default = bcl-convert;
-          });
+            packages = {
+              default = bcl-convert (v default_version);
+            } // builtins.mapAttrs (name: _p: bcl-convert (v name)) available_versions;
+          }
+      );
 }
