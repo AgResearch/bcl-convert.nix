@@ -7,6 +7,10 @@ This is a Nix Flake for Illumina BCL Convert, which provides both an installable
 As a devshell:
 
 ```
+$ nix develop github:AgResearch/bcl-convert.nix
+$ bcl-convert --version
+bcl-convert Version 00.000.000.4.2.7
+
 $ nix develop github:AgResearch/bcl-convert.nix#v4_2_4
 $ bcl-convert --version
 bcl-convert Version 00.000.000.4.2.4
