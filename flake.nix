@@ -18,31 +18,28 @@
 
           available_versions = {
             "v4_2_7" = {
-              release = "2";
+              version = "4.2.7-2";
               hash = "sha256-6lCNdj3CfTDRo09qONjaMepneX17SXHowQZ3vEhTlWU=";
             };
 
             "v4_2_4" = {
-              release = "2";
+              version = "4.2.4-2";
               hash = "sha256-/p8DQ+/AV5TVCPAk1d3JOXZItw0PGkMMTgPVKW5hoVw=";
             };
           };
 
-          v = underscored_version: (available_versions.${underscored_version} // { version = builtins.replaceStrings ["v" "_"] ["" "."] underscored_version; });
-
-          bcl-convert = p:
+          bcl-convert = ver:
             with pkgs;
-            with p;
+            with available_versions.${ver};
             stdenv.mkDerivation rec {
               pname = "bcl-convert";
               arch = builtins.head (lib.strings.splitString "-" system);
 
               inherit version;
-              inherit release;
               inherit hash;
 
               src = fetchurl {
-                url = "https://s3.amazonaws.com/webdata.illumina.com/downloads/software/bcl-convert/bcl-convert-${version}-${release}.el7.${arch}.rpm";
+                url = "https://s3.amazonaws.com/webdata.illumina.com/downloads/software/bcl-convert/bcl-convert-${version}.el7.${arch}.rpm";
                 inherit hash;
               };
 
@@ -74,17 +71,17 @@
           {
             devShells = {
               default = mkShell {
-                buildInputs = [ (bcl-convert (v default_version)) ];
+                buildInputs = [ (bcl-convert default_version) ];
               };
-            } // builtins.mapAttrs (name: _p:
+            } // builtins.mapAttrs (ver: _:
               mkShell {
-                buildInputs = [ (bcl-convert (v name)) ];
+                buildInputs = [ (bcl-convert ver) ];
               }
             ) available_versions;
 
             packages = {
-              default = bcl-convert (v default_version);
-            } // builtins.mapAttrs (name: _p: bcl-convert (v name)) available_versions;
+              default = bcl-convert default_version;
+            } // builtins.mapAttrs (ver: _: bcl-convert ver) available_versions;
           }
       );
 }
