@@ -45,7 +45,7 @@
 
               buildInputs = [
                 stdenv.cc.cc.lib
-                lzma
+                xz
                 udev
                 zlib
               ];
@@ -55,33 +55,35 @@
               ];
 
               unpackPhase = ''
-              ${rpmextract}/bin/rpmextract $src
-            '';
+                ${rpmextract}/bin/rpmextract $src
+              '';
 
               installPhase = ''
-              runHook preInstall
-              mkdir -p $out/bin
-              cp usr/bin/bcl-convert $out/bin
-              runHook postInstall
-            '';
+                runHook preInstall
+                mkdir -p $out/bin
+                cp usr/bin/bcl-convert $out/bin
+                runHook postInstall
+              '';
             };
 
         in
-          with pkgs;
-          {
-            devShells = {
-              default = mkShell {
-                buildInputs = [ (bcl-convert default_version) ];
-              };
-            } // builtins.mapAttrs (ver: _:
+        with pkgs;
+        {
+          devShells = {
+            default = mkShell {
+              buildInputs = [ (bcl-convert default_version) ];
+            };
+          } // builtins.mapAttrs
+            (ver: _:
               mkShell {
                 buildInputs = [ (bcl-convert ver) ];
               }
-            ) available_versions;
+            )
+            available_versions;
 
-            packages = {
-              default = bcl-convert default_version;
-            } // builtins.mapAttrs (ver: _: bcl-convert ver) available_versions;
-          }
+          packages = {
+            default = bcl-convert default_version;
+          } // builtins.mapAttrs (ver: _: bcl-convert ver) available_versions;
+        }
       );
 }
